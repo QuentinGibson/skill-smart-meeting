@@ -18,6 +18,7 @@ const LaunchRequestHandler = {
     if (accessToken) {
       const speechText = 'Including yourself how many people are in this meeting?'
       sessionAttributes.init = false
+      sessionAttributes.listOfAttendees = []
 
       return responseBuilder
         .speak(speechText)
@@ -53,6 +54,7 @@ const SetUpIntentHandler = {
       const speechtext = `<speak>What is the first name of the <say-as interpret-as='ordinal'>${personNumber}</say-as> person you would like to add?</speak>`
       return responseBuilder
         .speak(speechtext)
+        .reprompt(speechtext)
         .getResponse()
     } else {
       return askToLink(handlerInput)
@@ -71,7 +73,7 @@ const AddPersonByFirstNameIntentHandler = {
       request.intent.name === 'AddPersonIntent' &&
       sessionAttributes.init
   },
-  async handle (handlerInput) {
+  handle (handlerInput) {
     const request = handlerInput.requestEnvelope.request
     const responseBuilder = handlerInput.responseBuilder
     const attributesManager = handlerInput.attributesManager
@@ -92,7 +94,7 @@ const AddPersonByFirstNameIntentHandler = {
       // -------------------------
       let speechText
       // Looks for employee in bussiness outlook account. This returns an array with said first name
-      const attendee = await findEmployee(client, slots.firstName.value).catch((error) => {
+      const attendee = findEmployee(client, slots.firstName.value).catch((error) => {
         console.log(error)
         responseBuilder.speak(`There was a problem speaking to outlook`).getResponse()
       })
@@ -131,14 +133,14 @@ const AddPersonByFullNameIntentHandler = {
     const request = handlerInput.requestEnvelope.request
     const attributesManager = handlerInput.attributesManager
     const sessionAttributes = attributesManager.getSessionAttributes()
-    const slots = request.intent.slots
-    const numberOfAttendees = slots.number.value - 1
+    // const slots = request.intent.slots
+    // const numberOfAttendees = slots.number.value - 1
 
     return request.type === 'IntentRequest' &&
       request.intent.name === 'AddPersonIntent' &&
       request.slots.firstName.value &&
       request.slots.lastName.value &&
-      sessionAttributes.listOfAttendees < numberOfAttendees &&
+      // sessionAttributes.listOfAttendees < numberOfAttendees &&
       sessionAttributes.init
   },
   async handle (handlerInput) {
