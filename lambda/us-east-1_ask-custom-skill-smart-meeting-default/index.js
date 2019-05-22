@@ -3,14 +3,14 @@
 
 const Alexa = require('ask-sdk-core')
 const moment = require('moment')
-const Graph = require('@microsoft/microsoft-graph-client')
+const Client = require('@microsoft/microsoft-graph-client').Client
 
 const LaunchRequestHandler = {
   canHandle (handlerInput) {
     const request = handlerInput.requestEnvelope.request
     return request.type === 'LaunchRequest'
   },
-  handle (handlerInput) {
+  async handle (handlerInput) {
     let { accessToken } = handlerInput.requestEnvelope.context.System.user
     let responseBuilder = handlerInput.responseBuilder
     const attributesManager = handlerInput.attributesManager
@@ -71,9 +71,9 @@ const AddPersonByFirstNameIntentHandler = {
 
     return request.type === 'IntentRequest' &&
       request.intent.name === 'AddPersonIntent' &&
-      sessionAttributes.init
+      sessionAttributes.init === true
   },
-  handle (handlerInput) {
+  async handle (handlerInput) {
     const request = handlerInput.requestEnvelope.request
     const responseBuilder = handlerInput.responseBuilder
     const attributesManager = handlerInput.attributesManager
@@ -84,7 +84,7 @@ const AddPersonByFirstNameIntentHandler = {
     let { accessToken } = handlerInput.requestEnvelope.context.System.user
 
     if (accessToken) {
-      const client = Graph.client.init({
+      const client = Client.init({
         authProvider: (done) => {
           done(null, accessToken)
         }
@@ -94,7 +94,7 @@ const AddPersonByFirstNameIntentHandler = {
       // -------------------------
       let speechText
       // Looks for employee in bussiness outlook account. This returns an array with said first name
-      const attendee = findEmployee(client, slots.firstName.value).catch((error) => {
+      const attendee = await findEmployee(client, slots.firstName.value).catch((error) => {
         console.log(error)
         responseBuilder.speak(`There was a problem speaking to outlook`).getResponse()
       })
@@ -154,7 +154,7 @@ const AddPersonByFullNameIntentHandler = {
     let { accessToken } = handlerInput.requestEnvelope.context.System.user
 
     if (accessToken) {
-      const client = Graph.client.init({
+      const client = Client.init({
         authProvider: (done) => {
           done(null, accessToken)
         }
@@ -274,7 +274,7 @@ const AvailableTimeIntent = {
     const timeSlot = sessionAttributes.timeSlot
     let { accessToken } = handlerInput.requestEnvelope.context.System.user
     if (accessToken) {
-      const client = Graph.client.init({
+      const client = Client.init({
         authProvider: (done) => {
           done(null, accessToken)
         }
@@ -342,7 +342,7 @@ const MeetingIntent = {
     const meetingTime = availableTimes[timeSlot]
     let { accessToken } = handlerInput.requestEnvelope.context.System.user
     if (accessToken) {
-      const client = Graph.client.init({
+      const client = Client.init({
         authProvider: (done) => {
           done(null, accessToken)
         }
