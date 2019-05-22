@@ -1,0 +1,33 @@
+{
+  "deploy_settings": {
+    "default": {
+      "skill_id": "amzn1.ask.skill.e85754c6-abf7-4478-b4cb-9fd01db69eed",
+      "was_cloned": true,
+      "merge": {},
+      "resources": {
+        "manifest": {
+          "eTag": "29e72b885265c449b5c007f0e8ced73e"
+        },
+        "interactionModel": {
+          "en-US": {
+            "eTag": "0cf0258e4c1921b8f80f5a59bb1e3dd3"
+          }
+        },
+        "lambda": [
+          {
+            "arn": "arn:aws:lambda:us-east-1:589026521723:function:ask-custom-skill-smart-meeting-default",
+            "awsRegion": "us-east-1",
+            "functionName": "ask-custom-skill-smart-meeting-default",
+            "alexaUsage": [
+              "custom/default"
+            ],
+            "revisionId": "72cf08e8-dbd9-47ef-9432-ef93e4a1c01a",
+            "codeUri": "lambda/us-east-1_ask-custom-skill-smart-meeting-default",
+            "handler": "index.handler",
+            "runtime": "nodejs8.10"
+          }
+        ]
+      }
+    }
+  }
+}
