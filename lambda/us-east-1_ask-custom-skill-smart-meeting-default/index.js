@@ -24,7 +24,7 @@ const LaunchRequestHandler = {
         .reprompt(speechText)
         .getResponse()
     } else {
-      askToLink(handlerInput)
+      return askToLink(handlerInput)
     }
   }
 }
@@ -55,7 +55,7 @@ const SetUpIntentHandler = {
         .speak(speechtext)
         .getResponse()
     } else {
-      askToLink(handlerInput)
+      return askToLink(handlerInput)
     }
   }
 }
@@ -120,7 +120,7 @@ const AddPersonByFirstNameIntentHandler = {
         .reprompt(speechText)
         .getResponse()
     } else {
-      askToLink(handlerInput)
+      return askToLink(handlerInput)
     }
   }
 }
@@ -185,7 +185,7 @@ const AddPersonByFullNameIntentHandler = {
       return responseBuilder
         .speak(speechText)
     } else {
-      askToLink(handlerInput)
+      return askToLink(handlerInput)
     }
   }
 }
@@ -214,7 +214,7 @@ const YesStartMeetingHandler = {
         .reprompt(`Say the earliest date for the meeting.`)
         .getResponse()
     } else {
-      askToLink(handlerInput)
+      return askToLink(handlerInput)
     }
   }
 }
@@ -249,7 +249,7 @@ const NoStartMeetingHandler = {
         .reprompt(`Say stop or a first name`)
         .getResponse()
     } else {
-      askToLink(handlerInput)
+      return askToLink(handlerInput)
     }
   }
 }
@@ -306,7 +306,7 @@ const AvailableTimeIntent = {
           .getResponse()
       }
     } else {
-      askToLink(handlerInput)
+      return askToLink(handlerInput)
     }
   }
 }
@@ -362,7 +362,7 @@ const MeetingIntent = {
           .getResponse()
       }
     } else {
-      askToLink(handlerInput)
+      return askToLink(handlerInput)
     }
   }
 }
@@ -391,7 +391,7 @@ const YesAvailableTimeHandler = {
         .reprompt(`What would you like the subject of the meeting to be?`)
         .getResponse()
     } else {
-      askToLink(handlerInput)
+      return askToLink(handlerInput)
     }
   }
 }
@@ -419,7 +419,7 @@ const NoAvailableTimeHandler = {
         .speak(`Goodbye!`)
         .getResponse()
     } else {
-      askToLink(handlerInput)
+      return askToLink(handlerInput)
     }
   }
 }
@@ -440,7 +440,7 @@ const HelpHandler = {
         .reprompt(speechText)
         .getResponse()
     } else {
-      askToLink(handlerInput)
+      return askToLink(handlerInput)
     }
   }
 }
@@ -489,20 +489,16 @@ const ErrorHandler = {
 }
 
 // Handles non-linked accounts
-const askToLink = (handlerInput) => {
+function askToLink (handlerInput) {
   const speechText = 'Please link your account to use this skill.'
-
-  return handlerInput.responseBuilder
-    .speak(speechText)
-    .withLinkAccountCard()
-    .getResponse()
+  return handlerInput.responseBuilder.speak(speechText).getResponse()
 }
 
 // Returns a array of all employees with a given first name.
 const findEmployee = (client, givenName) => client.api('me/people').search(givenName).get()
 
 // Returns an array of available times for the meetings
-const findAvailableTimes = async (client, attendees, slots) => {
+async function findAvailableTimes (client, attendees, slots) {
   const meetingDetail = () => {
     let duration = slots.duration.value
     let startDate = slots.startDate.value
@@ -569,7 +565,7 @@ const findAvailableTimes = async (client, attendees, slots) => {
     })
 }
 
-const createMeeting = async (client, subject, content, meetingTime, attendees) => {
+async function createMeeting (client, subject, content, meetingTime, attendees) {
   const eventDetails = {
     subject: subject,
     body: {
