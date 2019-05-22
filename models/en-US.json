@@ -431,7 +431,7 @@
               "variations": [
                   {
                       "type": "PlainText",
-                      "value": "What is the context the meeting?"
+                      "value": "What is the context of the meeting?"
                   }
               ]
           },
