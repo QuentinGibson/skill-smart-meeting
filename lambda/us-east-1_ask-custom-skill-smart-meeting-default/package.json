@@ -12,6 +12,7 @@
     "@microsoft/microsoft-graph-client": "^1.7.0",
     "ask-sdk-core": "^2.0.0",
     "ask-sdk-model": "^1.0.0",
+    "fuse.js": "^3.4.4",
     "moment": "^2.24.0"
   }
 }
