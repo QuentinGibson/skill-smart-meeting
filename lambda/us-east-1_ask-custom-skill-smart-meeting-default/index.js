@@ -78,7 +78,6 @@ const AddPersonIntentHandler = {
     const { slots } = request.intent
 
     const sessionAttributes = attributesManager.getSessionAttributes()
-    const { listOfAttendees } = sessionAttributes
     const { size } = sessionAttributes
     let { accessToken } = handlerInput.requestEnvelope.context.System.user
 
@@ -102,9 +101,9 @@ const AddPersonIntentHandler = {
         // Add attendee to the list and checks if the user is completed
         if (attendee.length === 1) {
           attendee = attendee[0]
-          listOfAttendees.push(attendee)
+          sessionAttributes.listOfAttendees.push(attendee)
           speechText = `${attendee.displayName} has been added to the meeting.`
-          if (listOfAttendees.length < size) {
+          if (sessionAttributes.listOfAttendees.length < size) {
             speechText += ` Please say the first name of your next attendee`
           } else {
             speechText += ` Would you like to find a meeting time?`
@@ -142,8 +141,6 @@ const AddPersonIntentHandler = {
             id: 'displayName'
           }
           let fuse = new Fuse(attendee.value, options)
-          console.log(fuse)
-          console.log(fuse.search(firstName))
           attendee = fuse.search(firstName)
         } else {
           attendee = attendeeFilter
@@ -152,7 +149,7 @@ const AddPersonIntentHandler = {
         // Add attendee to the list and checks if the user is completed
         if (attendee.length === 1) {
           attendee = attendee[0]
-          listOfAttendees.push(attendee)
+          sessionAttributes.listOfAttendees.push(attendee)
           speechText = `${attendee.displayName} has been added to the meeting.`
           if (attendee.length < size) {
             speechText += ` Please say the first name of your next attendee`
@@ -264,8 +261,7 @@ const AvailableTimeIntent = {
         }
       })
       // This is a list of all the times
-      console.log('Running findAvailableTimes')
-      let { availableTimes } = await findAvailableTimes(client, sessionAttributes.listOfAttendees, slots).catch((error) => {
+      let availableTimes = await findAvailableTimes(client, sessionAttributes.listOfAttendees, slots).catch((error) => {
         console.log(error)
         responseBuilder.speak(`There was a problem speaking to outlook`).getResponse()
       })
@@ -325,6 +321,7 @@ const MeetingIntent = {
           response = `There was an error speaking to outlook`
         })
       if (result) {
+        console.log('results: ' + JSON.stringify(result))
         return responseBuilder
           .speak(response)
           .getResponse()
@@ -429,8 +426,6 @@ async function findAvailableTimes (client, attendees, slots) {
       // Object reprsenting the earilest someone could meet at a certain day to the latest
       let dateTimeStart = moment(`${currentMoment.format('YYYY-MM-DD')}T${startTime}`).format(timeFormat) + 'Z'
       let dateTimeEnd = moment(`${currentMoment.format('YYYY-MM-DD')}T${endTime}`).format(timeFormat) + 'Z'
-      console.log(dateTimeStart)
-      console.log(dateTimeEnd)
       let meetingPeriod = {
         start: {
           dateTime: dateTimeStart,
@@ -450,9 +445,14 @@ async function findAvailableTimes (client, attendees, slots) {
 
     // Format the email address information of every attendee
     attendees = attendees.map(attendee => {
-      return Object.assign({}, attendee, { type: `required` })
+      return {
+        type: `required`,
+        emailAddress: {
+          address: attendee.scoredEmailAddresses[0].address,
+          name: attendee.displayName
+        }
+      }
     })
-    console.log(attendees)
     // Formated for post request to graph api
     const returnValue = {
       attendees: attendees,
@@ -463,7 +463,6 @@ async function findAvailableTimes (client, attendees, slots) {
       },
       meetingDuration: duration
     }
-    console.log(`Return Value of Find Time: ${returnValue}`)
     return returnValue
   }
 
@@ -488,10 +487,19 @@ async function findAvailableTimes (client, attendees, slots) {
 }
 
 async function createMeeting (client, subject, content, meetingTime, attendees) {
-  const eventDetails = {
+  attendees = attendees.map(attendee => {
+    return {
+      type: `required`,
+      emailAddress: {
+        address: attendee.scoredEmailAddresses[0].address,
+        name: attendee.displayName
+      }
+    }
+  })
+  const event = {
     subject: subject,
     body: {
-      contentType: 'Text',
+      contentType: 'HTML',
       content: content
     },
     start: {
@@ -502,10 +510,10 @@ async function createMeeting (client, subject, content, meetingTime, attendees) 
       dateTime: meetingTime.end.dateTime,
       timeZone: meetingTime.end.timeZone
     },
-    attendees: attendees,
-    type: 'singleInstance'
+    attendees: attendees
   }
-  let response = await client.api('/me/calendar/events').post({ event: eventDetails })
+  console.log(`event: ${JSON.stringify(event)}`)
+  let response = await client.api('/me/calendar/events').post({ event })
   return response
 }
 const skillBuilder = Alexa.SkillBuilders.custom()
