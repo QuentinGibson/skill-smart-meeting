@@ -23,7 +23,7 @@
             "codeUri": "lambda/us-east-1_ask-custom-skill-smart-meeting-default",
             "functionName": "ask-custom-skill-smart-meeting-default",
             "handler": "index.handler",
-            "revisionId": "c40f3ae4-fc21-4f17-9c60-a1928f150e7b",
+            "revisionId": "9c649221-0fe4-4cff-8ae4-42455bc946dd",
             "runtime": "nodejs8.10"
           }
         ]

@@ -513,8 +513,8 @@ async function createMeeting (client, subject, content, meetingTime, attendees) 
     },
     attendees: attendees
   }
-  let response = await client.api('/me/events').post(event)
-  return response
+  return client.api('/me/events').post(event)
+    .then(result => console.log(result))
 }
 const skillBuilder = Alexa.SkillBuilders.custom()
 
