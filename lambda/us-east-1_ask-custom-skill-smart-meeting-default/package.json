@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "mocha ../../tests/hello-tests.js",
+    "proxy": "bst proxy ./lambda/us-east-1_ask-custom-skill-smart-meeting-default/index.js"
   },
   "author": "",
   "license": "ISC",
