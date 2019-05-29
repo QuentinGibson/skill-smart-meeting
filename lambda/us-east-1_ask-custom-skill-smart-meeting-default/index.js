@@ -246,13 +246,13 @@ const AvailableTimeIntent = {
       request.intent.name === 'AvailableTimeIntent'
   },
   async handle (handlerInput) {
-    const request = handlerInput.requestEnvelope.request
-    const responseBuilder = handlerInput.responseBuilder
-    const attributesManager = handlerInput.attributesManager
+    const { request } = handlerInput.requestEnvelope
+    const { responseBuilder } = handlerInput
+    const { attributesManager } = handlerInput
     const sessionAttributes = attributesManager.getSessionAttributes()
     const { slots } = request.intent
     sessionAttributes.timeSlot = 0
-    const timeSlot = sessionAttributes.timeSlot
+    const { timeSlot } = sessionAttributes
     let { accessToken } = handlerInput.requestEnvelope.context.System.user
     if (accessToken) {
       const client = Client.init({
@@ -266,6 +266,7 @@ const AvailableTimeIntent = {
         responseBuilder.speak(`There was a problem speaking to outlook`).getResponse()
       })
       sessionAttributes.availableTimes = availableTimes
+      const currentMeetingTime = availableTimes[timeSlot].start.value
       // Checks if there is a available time
       if (availableTimes.length === 0) {
       // Ends the skill with a message
@@ -275,9 +276,9 @@ const AvailableTimeIntent = {
       } else {
       // Asks the person to confirm the time
         return responseBuilder
-          .speak(`<speak> Your <say-as interpret-as='ordinal'>${timeSlot + 1}</say-as> available time frame is ${availableTimes[timeSlot].start.value}.
+          .speak(`<speak> Your <say-as interpret-as='ordinal'>` + (timeSlot + 1) + `</say-as> available time frame is ${currentMeetingTime}.
             Would you like to set up a meeting then? Or find the next available time?</speak>`)
-          .reprompt(`Would you like to set up a meeting at ${availableTimes[timeSlot].start.value}.`)
+          .reprompt(`Would you like to set up a meeting at ${currentMeetingTime}.`)
           .getResponse()
       }
     } else {
@@ -415,8 +416,8 @@ async function findAvailableTimes (client, attendees, slots) {
     let duration = slots.duration.value
     let startDate = slots.startDate.value
     let endDate = slots.endDate.value
-    let startTime = slots.startTime.value || '00:00:00'
-    let endTime = slots.endTime.value || '23:59:59'
+    let startTime = slots.startTime.value || '07:00:00'
+    let endTime = slots.endTime.value || '18:59:59'
     // Moment time format Year - Month - Day - T - Hour - Minutes - Seconds - Milliseconds
     const timeFormat = 'YYYY-MM-DDTHH:mm:ss.SSS'
     let dateArray = []
@@ -512,8 +513,7 @@ async function createMeeting (client, subject, content, meetingTime, attendees) 
     },
     attendees: attendees
   }
-  console.log(`event: ${JSON.stringify(event)}`)
-  let response = await client.api('/me/calendar/events').post({ event })
+  let response = await client.api('/me/events').post(event)
   return response
 }
 const skillBuilder = Alexa.SkillBuilders.custom()
