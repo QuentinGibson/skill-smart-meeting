@@ -107,8 +107,19 @@
                         }
                     ],
                     "samples": [
+                        "set up a meeting",
                         "create a meeting",
                         "{subject}"
+                    ]
+                },
+                {
+                    "name": "TimeSlotIntent",
+                    "slots": [],
+                    "samples": [
+                        "next",
+                        "next best time",
+                        "next available time",
+                        "find the next available time"
                     ]
                 }
             ],
@@ -319,8 +330,13 @@
                     ]
                 },
                 {
-                    "name": "Context",
+                    "name": "Subject",
                     "values": [
+                        {
+                            "name": {
+                                "value": "team meeting"
+                            }
+                        },
                         {
                             "name": {
                                 "value": "delinquency report"
@@ -344,8 +360,13 @@
                     ]
                 },
                 {
-                    "name": "Subject",
+                    "name": "Context",
                     "values": [
+                        {
+                            "name": {
+                                "value": "we need to go over our performance last week"
+                            }
+                        },
                         {
                             "name": {
                                 "value": "review last weeks spendings"
