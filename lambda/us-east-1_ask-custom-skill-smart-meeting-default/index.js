@@ -45,6 +45,7 @@ const SetUpIntentHandler = {
     const sessionAttributes = attributesManager.getSessionAttributes()
     const responseBuilder = handlerInput.responseBuilder
     sessionAttributes.size = handlerInput.requestEnvelope.request.intent.slots.number.value - 1
+    sessionAttributes.timeSlot = 0
     let { accessToken } = handlerInput.requestEnvelope.context.System.user
 
     if (accessToken) {
@@ -251,7 +252,6 @@ const AvailableTimeIntent = {
     const { attributesManager } = handlerInput
     const sessionAttributes = attributesManager.getSessionAttributes()
     const { slots } = request.intent
-    sessionAttributes.timeSlot = 0
     const { timeSlot } = sessionAttributes
     let { accessToken } = handlerInput.requestEnvelope.context.System.user
     if (accessToken) {
@@ -276,14 +276,32 @@ const AvailableTimeIntent = {
       } else {
       // Asks the person to confirm the time
         return responseBuilder
-          .speak(`<speak> Your <say-as interpret-as='ordinal'>` + (timeSlot + 1) + `</say-as> available time frame is ${currentMeetingTime}.
-            Would you like to set up a meeting then? Or find the next available time?</speak>`)
+          .speak(`Your first available time frame is ${currentMeetingTime}.
+            Would you like to set up a meeting then? Or find the next available time?`)
           .reprompt(`Would you like to set up a meeting at ${currentMeetingTime}.`)
           .getResponse()
       }
     } else {
       return askToLink(handlerInput)
     }
+  }
+}
+
+const TimeSlotHandler = {
+  canHandle (handlerInput) {
+    const request = handlerInput.requestEnvelope.request
+    return request.type === 'IntentRequest' &&
+      request.intent.name === 'TimeSlotIntent'
+  },
+  handle (handlerInput) {
+    const { responseBuilder } = handlerInput
+    const { attributesManager } = handlerInput
+    const sessionAttributes = attributesManager.getSessionAttributes()
+    const { timeSlot, availableTimes } = sessionAttributes
+    const currentMeetingTime = availableTimes[timeSlot].start.value
+    return responseBuilder.speak(`<speak> Your next available time frame is ${currentMeetingTime}.
+    Would you like to set up a meeting then? Or find the next available time?</speak>`)
+      .reprompt(`Would you like to set up a meeting at ${currentMeetingTime}.`).getResponse()
   }
 }
 
@@ -525,6 +543,7 @@ exports.handler = skillBuilder
     AddPersonIntentHandler,
     AvailableTimeIntent,
     MeetingIntent,
+    TimeSlotHandler,
     YesStartMeetingHandler,
     NoStartMeetingHandler,
     HelpHandler,
