@@ -80,8 +80,8 @@ const AddPersonIntentHandler = {
 
     const sessionAttributes = attributesManager.getSessionAttributes()
     const { size } = sessionAttributes
-    let { accessToken } = handlerInput.requestEnvelope.context.System.user
 
+    let { accessToken } = handlerInput.requestEnvelope.context.System.user
     if (accessToken) {
       if (!slots.lastName.value) {
         const client = Client.init({
@@ -104,6 +104,7 @@ const AddPersonIntentHandler = {
           attendee = attendee[0]
           sessionAttributes.listOfAttendees.push(attendee)
           speechText = `${attendee.displayName} has been added to the meeting.`
+          console.log(`length and size: ${sessionAttributes.listOfAttendees.length}, ${size}`)
           if (sessionAttributes.listOfAttendees.length < size) {
             speechText += ` Please say the first name of your next attendee`
           } else {
@@ -152,6 +153,7 @@ const AddPersonIntentHandler = {
           attendee = attendee[0]
           sessionAttributes.listOfAttendees.push(attendee)
           speechText = `${attendee.displayName} has been added to the meeting.`
+          console.log(`length and size: ${sessionAttributes.listOfAttendees.length}, ${size}`)
           if (attendee.length < size) {
             speechText += ` Please say the first name of your next attendee`
           } else {
