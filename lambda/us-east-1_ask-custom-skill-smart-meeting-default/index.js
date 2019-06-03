@@ -62,7 +62,7 @@ const SetUpIntentHandler = {
   }
 }
 
-// Handles first names at if attendees are not set
+// Handles names at if attendees are not set
 const AddPersonIntentHandler = {
   canHandle (handlerInput) {
     const request = handlerInput.requestEnvelope.request
@@ -154,7 +154,7 @@ const AddPersonIntentHandler = {
           sessionAttributes.listOfAttendees.push(attendee)
           speechText = `${attendee.displayName} has been added to the meeting.`
           console.log(`length and size: ${sessionAttributes.listOfAttendees.length}, ${size}`)
-          if (attendee.length < size) {
+          if (sessionAttributes.listOfAttendees.length < size) {
             speechText += ` Please say the first name of your next attendee`
           } else {
             speechText += ` Would you like to find the best available meeting time?`
