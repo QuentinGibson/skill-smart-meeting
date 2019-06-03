@@ -299,7 +299,8 @@ const TimeSlotHandler = {
     const { responseBuilder } = handlerInput
     const { attributesManager } = handlerInput
     const sessionAttributes = attributesManager.getSessionAttributes()
-    const { timeSlot, availableTimes } = sessionAttributes
+    sessionAttributes.timeSlot += 1
+    const { availableTimes, timeSlot } = sessionAttributes
     const currentMeetingTime = availableTimes[timeSlot].start.value
     return responseBuilder.speak(`<speak> Your next available time frame is ${currentMeetingTime}.
     Would you like to set up a meeting then? Or find the next available time?</speak>`)
