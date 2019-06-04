@@ -5,21 +5,21 @@ const Alexa = require('ask-sdk-core')
 const moment = require('moment')
 const Client = require('@microsoft/microsoft-graph-client').Client
 const Fuse = require('fuse.js')
+const _ = require('lodash')
 
 const LaunchRequestHandler = {
+  // TODO: Impliment session control.
   canHandle (handlerInput) {
     const request = handlerInput.requestEnvelope.request
-    return request.type === 'LaunchRequest'
+    return handlerInput.requestEnvelope.session.new || request.type === 'LaunchRequest'
   },
   async handle (handlerInput) {
     let { accessToken } = handlerInput.requestEnvelope.context.System.user
-    let responseBuilder = handlerInput.responseBuilder
-    const attributesManager = handlerInput.attributesManager
+    const { responseBuilder, attributesManager } = handlerInput
     const sessionAttributes = attributesManager.getSessionAttributes()
-    sessionAttributes.init = false
     sessionAttributes.listOfAttendees = []
     if (accessToken) {
-      const speechText = 'Including yourself how many people are in this meeting?'
+      const speechText = 'Welcome the the smart meeting finder. Including yourself, how many people are in this meeting?'
       return responseBuilder
         .speak(speechText)
         .reprompt(speechText)
@@ -38,18 +38,16 @@ const SetUpIntentHandler = {
     const sessionAttributes = attributesManager.getSessionAttributes()
     return request.type === 'IntentRequest' &&
       request.intent.name === 'SetUpIntent' &&
-      !sessionAttributes.init
+      !sessionAttributes.size
   },
   handle (handlerInput) {
-    const attributesManager = handlerInput.attributesManager
+    const { responseBuilder, attributesManager, requestEnvelope } = handlerInput
     const sessionAttributes = attributesManager.getSessionAttributes()
-    const responseBuilder = handlerInput.responseBuilder
-    sessionAttributes.size = handlerInput.requestEnvelope.request.intent.slots.number.value - 1
+    sessionAttributes.size = requestEnvelope.request.intent.slots.number.value - 1
     sessionAttributes.timeSlot = 0
-    let { accessToken } = handlerInput.requestEnvelope.context.System.user
+    let { accessToken } = requestEnvelope.context.System.user
 
     if (accessToken) {
-      sessionAttributes.init = true
       // SSML tags so Alexa can say things like "first", "second"
       const speechtext = `<speak>What is the first name of the <say-as interpret-as='ordinal'>1</say-as> person you would like to add?</speak>`
       return responseBuilder
@@ -65,12 +63,19 @@ const SetUpIntentHandler = {
 // Handles names at if attendees are not set
 const AddPersonIntentHandler = {
   canHandle (handlerInput) {
+    let finishAdding = false
+
     const request = handlerInput.requestEnvelope.request
     const attributesManager = handlerInput.attributesManager
     const sessionAttributes = attributesManager.getSessionAttributes()
+
+    if (sessionAttributes.listOfAttendees && sessionAttributes.listOfAttendees.length >= sessionAttributes.size.length) {
+      finishAdding = true
+    }
+
     return request.type === 'IntentRequest' &&
       request.intent.name === 'AddPersonIntent' &&
-      sessionAttributes.init
+      !finishAdding
   },
   async handle (handlerInput) {
     const { request } = handlerInput.requestEnvelope
@@ -83,20 +88,22 @@ const AddPersonIntentHandler = {
 
     let { accessToken } = handlerInput.requestEnvelope.context.System.user
     if (accessToken) {
-      if (!slots.lastName.value) {
+      if ((!slots.lastName.value && slots.firstName.value) || (!slots.firstName.value && slots.lastName.value)) {
         const client = Client.init({
           authProvider: (done) => {
             done(null, accessToken)
           }
         })
         let speechText
+        let name = slots.firstName.value || slots.lastName.value
         // Looks for employee in bussiness outlook account. This returns an array with said first name
-        let attendee = await findEmployee(client, slots.firstName.value).catch((error) => {
+        let attendee = await findEmployee(client, name).catch((error) => {
           console.log(error)
           responseBuilder.speak(`There was a problem speaking to outlook`).getResponse()
         })
+        // TODO: Check if attendee exists
         attendee = attendee.value.filter(employee => {
-          return employee.givenName.toLowerCase() === slots.firstName.value.toLowerCase()
+          return employee.givenName.toLowerCase() === name.toLowerCase()
         })
         // Checks what findEmployee returns
         // Add attendee to the list and checks if the user is completed
@@ -179,9 +186,19 @@ const AddPersonIntentHandler = {
 // Handles yes based on if a time is set
 const YesStartMeetingHandler = {
   canHandle (handlerInput) {
+    let finishAdding = false
+
     const { request } = handlerInput.requestEnvelope
+    const attributesManager = handlerInput.attributesManager
+    const sessionAttributes = attributesManager.getSessionAttributes()
+
+    if (sessionAttributes.listOfAttendees.length >= sessionAttributes.size) {
+      finishAdding = true
+    }
+
     return request.type === 'IntentRequest' &&
-      request.intent.name === 'AMAZON.YesIntent'
+      request.intent.name === 'AMAZON.YesIntent' &&
+      finishAdding
   },
   handle (handlerInput) {
     const responseBuilder = handlerInput.responseBuilder
@@ -244,9 +261,19 @@ const NoStartMeetingHandler = {
 // Handles meeting intent
 const AvailableTimeIntent = {
   canHandle (handlerInput) {
+    let finishAdding = false
+
+    const attributesManager = handlerInput.attributesManager
+    const sessionAttributes = attributesManager.getSessionAttributes()
+
+    if (sessionAttributes.listOfAttendees && sessionAttributes.listOfAttendees.length >= sessionAttributes.size.length) {
+      finishAdding = true
+    }
+
     const request = handlerInput.requestEnvelope.request
     return request.type === 'IntentRequest' &&
-      request.intent.name === 'AvailableTimeIntent'
+      request.intent.name === 'AvailableTimeIntent' &&
+      finishAdding
   },
   async handle (handlerInput) {
     const { request } = handlerInput.requestEnvelope
@@ -291,9 +318,24 @@ const AvailableTimeIntent = {
 
 const TimeSlotHandler = {
   canHandle (handlerInput) {
+    const { attributesManager } = handlerInput
+    const sessionAttributes = attributesManager.getSessionAttributes()
     const request = handlerInput.requestEnvelope.request
+
+    let finishAdding = false
+    let finishTime = false
+
+    if (sessionAttributes.listOfAttendees && sessionAttributes.listOfAttendees.length >= sessionAttributes.size.length) {
+      finishAdding = true
+    }
+    if (sessionAttributes.availableTimes) {
+      finishTime = true
+    }
+
     return request.type === 'IntentRequest' &&
-      request.intent.name === 'TimeSlotIntent'
+      request.intent.name === 'TimeSlotIntent' &&
+      finishAdding &&
+      finishTime
   },
   handle (handlerInput) {
     const { responseBuilder } = handlerInput
@@ -309,11 +351,22 @@ const TimeSlotHandler = {
 }
 
 // Handler for Meeting Intent
+// TODO: Add samples for subject
 const MeetingIntent = {
   canHandle (handlerInput) {
+    let finishAdding = false
+
+    const attributesManager = handlerInput.attributesManager
+    const sessionAttributes = attributesManager.getSessionAttributes()
+
+    if (sessionAttributes.listOfAttendees && sessionAttributes.listOfAttendees.length >= sessionAttributes.size.length) {
+      finishAdding = true
+    }
+
     const request = handlerInput.requestEnvelope.request
     return request.type === 'IntentRequest' &&
-      request.intent.name === 'MeetingIntent'
+      request.intent.name === 'MeetingIntent' &&
+      finishAdding
   },
   async handle (handlerInput) {
     const request = handlerInput.requestEnvelope.request
@@ -322,7 +375,6 @@ const MeetingIntent = {
     const sessionAttributes = attributesManager.getSessionAttributes()
     const slots = request.intent.slots
 
-    const context = slots.context.value
     const subject = slots.subject.value
     const { availableTimes } = sessionAttributes
     const { timeSlot } = sessionAttributes
@@ -337,7 +389,7 @@ const MeetingIntent = {
       })
       let response = `Your meeting has been created!`
 
-      let result = createMeeting(client, subject, context, meetingTime, listOfAttendees)
+      let result = createMeeting(client, subject, meetingTime, listOfAttendees)
         .catch(error => {
           console.log(error)
           response = `There was an error speaking to outlook`
@@ -365,17 +417,29 @@ const HelpHandler = {
       request.intent.name === 'AMAZON.HelpIntent'
   },
   handle (handlerInput) {
-    const speechText = 'You can name someone to add to the meeting.'
-    let { accessToken } = handlerInput.requestEnvelope.context.System.user
+    const speechText = 'Find the best time for a group meeting and schedule it.'
 
-    if (accessToken) {
-      return handlerInput.responseBuilder
-        .speak(speechText)
-        .reprompt(speechText)
-        .getResponse()
-    } else {
-      return askToLink(handlerInput)
-    }
+    return handlerInput.responseBuilder
+      .speak(speechText)
+      .reprompt(speechText)
+      .getResponse()
+  }
+}
+
+// TODO: Add conditions for handlers that are strict in nature.
+const FallbackHandler = {
+  canHandle (handlerInput) {
+    // handle fallback intent, yes and no when playing a game
+    const request = handlerInput.requestEnvelope.request
+    return request.type === 'IntentRequest' &&
+      request.intent.name === 'AMAZON.FallbackIntent'
+  },
+  handle (handlerInput) {
+    // currently playing
+    return handlerInput.responseBuilder
+      .speak('Im sorry I didnt understand that.')
+      .reprompt('Im sorry I didnt understand that.')
+      .getResponse()
   }
 }
 
@@ -421,6 +485,18 @@ const ErrorHandler = {
       .getResponse()
   }
 }
+const UnhandledIntent = {
+  canHandle () {
+    return true
+  },
+  handle (handlerInput) {
+    const outputSpeech = 'I do not understand that phrase.'
+    return handlerInput.responseBuilder
+      .speak(outputSpeech)
+      .reprompt(outputSpeech)
+      .getResponse()
+  }
+}
 
 // Handles non-linked accounts
 function askToLink (handlerInput) {
@@ -434,11 +510,12 @@ const findEmployee = (client, givenName) => client.api('me/people').search(given
 // Returns an array of available times for the meetings
 async function findAvailableTimes (client, attendees, slots) {
   const meetingDetail = () => {
+    // TODO: Fix endDate
     let duration = slots.duration.value
     let startDate = slots.startDate.value
-    let endDate = slots.endDate.value
+    let endDate = moment(startDate).add(90, 'days')
     let startTime = slots.startTime.value || '07:00:00'
-    let endTime = slots.endTime.value || '18:59:59'
+    let endTime = '19:00:00'
     // Moment time format Year - Month - Day - T - Hour - Minutes - Seconds - Milliseconds
     const timeFormat = 'YYYY-MM-DDTHH:mm:ss.SSS'
     let dateArray = []
@@ -504,11 +581,13 @@ async function findAvailableTimes (client, attendees, slots) {
       }
 
       // Sorting the times from soonest to latest
-      return meetingTimes.sort((a, b) => a.start.value - b.start.value)
+      return _.sortBy(meetingTimes, function (timeSlot) {
+        return timeSlot.start.value
+      })
     })
 }
 
-async function createMeeting (client, subject, content, meetingTime, attendees) {
+async function createMeeting (client, subject, meetingTime, attendees) {
   attendees = attendees.map(attendee => {
     return {
       type: `required`,
@@ -522,7 +601,7 @@ async function createMeeting (client, subject, content, meetingTime, attendees) 
     subject: subject,
     body: {
       contentType: 'HTML',
-      content: content
+      content: `Created by Atlanticus's Smart Finder`
     },
     start: {
       dateTime: meetingTime.start.dateTime,
@@ -551,6 +630,8 @@ exports.handler = skillBuilder
     NoStartMeetingHandler,
     HelpHandler,
     ExitHandler,
+    FallbackHandler,
+    UnhandledIntent,
     SessionEndedRequestHandler
   )
   .addErrorHandlers(ErrorHandler)
