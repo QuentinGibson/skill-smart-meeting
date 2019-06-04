@@ -49,7 +49,7 @@ const SetUpIntentHandler = {
 
     if (accessToken) {
       // SSML tags so Alexa can say things like "first", "second"
-      const speechtext = `<speak>What is the first name of the <say-as interpret-as='ordinal'>1</say-as> person you would like to add?</speak>`
+      const speechtext = `<speak>What is the name of the person you would like to add?</speak>`
       return responseBuilder
         .speak(speechtext)
         .reprompt(speechtext)
