@@ -95,34 +95,43 @@ const AddPersonIntentHandler = {
           }
         })
         let speechText
-        let name = slots.firstName.value || slots.lastName.value
+        let name
+        if (slots.firstName.value) {
+          name = slots.firstName.value
+        } else {
+          name = slots.lastName.value
+        }
         // Looks for employee in bussiness outlook account. This returns an array with said first name
         let attendee = await findEmployee(client, name).catch((error) => {
           console.log(error)
           responseBuilder.speak(`There was a problem speaking to outlook`).getResponse()
         })
         // TODO: Check if attendee exists
-        attendee = attendee.value.filter(employee => {
-          return employee.givenName.toLowerCase() === name.toLowerCase()
-        })
+        attendee = attendee.value
+        const options = {
+          shouldSort: true,
+          threshold: 0.4,
+          keys: ['givenName', 'surname']
+        }
+        let fuse = new Fuse(attendee, options)
+        let result = fuse.search(name)
         // Checks what findEmployee returns
         // Add attendee to the list and checks if the user is completed
-        if (attendee.length === 1) {
-          attendee = attendee[0]
-          sessionAttributes.listOfAttendees.push(attendee)
-          speechText = `${attendee.displayName} has been added to the meeting.`
-          console.log(`length and size: ${sessionAttributes.listOfAttendees.length}, ${size}`)
+        if (result.length === 1) {
+          result = result[0]
+          sessionAttributes.listOfAttendees.push(result)
+          speechText = `${result.displayName} has been added to the meeting.`
           if (sessionAttributes.listOfAttendees.length < size) {
-            speechText += ` Please say the first name of your next attendee`
+            speechText += ` Please say the name of your next attendee`
           } else {
             speechText += ` Would you like to find a meeting time?`
           }
           // Ask user for last name if multiple are found
-        } else if (attendee.length > 1) {
-          speechText = `There was multiple ${slots.firstName.value}s found. Please say the full name of the attendee you would like to add.`
+        } else if (result.length > 1) {
+          speechText = `There was multiple ${name}'s found. Please say the full name of the attendee you would like to add.`
           // No employees were found
         } else {
-          speechText = `I'm sorry but I could not find the employee. Please try again or try another first name.`
+          speechText = `I'm sorry but I could not find the employee. Please try again or try another name.`
         }
         return responseBuilder
           .speak(speechText)
@@ -144,20 +153,20 @@ const AddPersonIntentHandler = {
         let attendeeFilter = attendee.value.filter(employee => {
           return employee.displayName.toLowerCase().includes(firstName.toLowerCase())
         })
+        let fuseFilter
         if (attendeeFilter.length === 0) {
           const options = {
-            keys: 'givenName',
-            id: 'displayName'
+            keys: 'givenName'
           }
           let fuse = new Fuse(attendee.value, options)
-          attendee = fuse.search(firstName)
+          fuseFilter = fuse.search(firstName)
         } else {
           attendee = attendeeFilter
         }
         let speechText
         // Add attendee to the list and checks if the user is completed
-        if (attendee.length === 1) {
-          attendee = attendee[0]
+        if (attendee.length === 1 || fuseFilter[0]) {
+          attendee = attendee[0] || fuseFilter[0]
           sessionAttributes.listOfAttendees.push(attendee)
           speechText = `${attendee.displayName} has been added to the meeting.`
           console.log(`length and size: ${sessionAttributes.listOfAttendees.length}, ${size}`)
