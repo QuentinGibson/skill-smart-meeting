@@ -5,7 +5,6 @@ const Alexa = require('ask-sdk-core')
 const moment = require('moment')
 const Client = require('@microsoft/microsoft-graph-client').Client
 const Fuse = require('fuse.js')
-const _ = require('lodash')
 
 const LaunchRequestHandler = {
   // TODO: Impliment session control.
@@ -44,6 +43,7 @@ const SetUpIntentHandler = {
     const { responseBuilder, attributesManager, requestEnvelope } = handlerInput
     const sessionAttributes = attributesManager.getSessionAttributes()
     sessionAttributes.size = requestEnvelope.request.intent.slots.number.value - 1
+    sessionAttributes.duration = requestEnvelope.request.intent.slots.duration.value
     sessionAttributes.timeSlot = 0
     let { accessToken } = requestEnvelope.context.System.user
 
@@ -69,13 +69,13 @@ const AddPersonIntentHandler = {
     const attributesManager = handlerInput.attributesManager
     const sessionAttributes = attributesManager.getSessionAttributes()
 
-    if (sessionAttributes.listOfAttendees && sessionAttributes.listOfAttendees.length >= sessionAttributes.size.length) {
+    if (sessionAttributes.listOfAttendees.length >= sessionAttributes.size) {
       finishAdding = true
     }
 
     return request.type === 'IntentRequest' &&
       request.intent.name === 'AddPersonIntent' &&
-      !finishAdding
+      finishAdding === false
   },
   async handle (handlerInput) {
     const { request } = handlerInput.requestEnvelope
@@ -110,7 +110,7 @@ const AddPersonIntentHandler = {
         attendee = attendee.value
         const options = {
           shouldSort: true,
-          threshold: 0.4,
+          threshold: 0.5,
           keys: ['givenName', 'surname']
         }
         let fuse = new Fuse(attendee, options)
@@ -124,7 +124,9 @@ const AddPersonIntentHandler = {
           if (sessionAttributes.listOfAttendees.length < size) {
             speechText += ` Please say the name of your next attendee`
           } else {
-            speechText += ` Would you like to find a meeting time?`
+            sessionAttributes.availableTimes = findFirstTime(sessionAttributes)
+            let firstTime = sessionAttributes.availableTimes[timeSlot].start.value
+            speechText = `Your first available time is ${firstTime}. Schedule meeting or find the next available time?`
           }
           // Ask user for last name if multiple are found
         } else if (result.length > 1) {
@@ -163,7 +165,11 @@ const AddPersonIntentHandler = {
         } else {
           attendee = attendeeFilter
         }
-        let speechText
+        
+        console.log(JSON.stringify(fuseFilter))
+        console.log(JSON.stringify(attendeeFilter))
+        
+        let speechText = ''
         // Add attendee to the list and checks if the user is completed
         if (attendee.length === 1 || fuseFilter[0]) {
           attendee = attendee[0] || fuseFilter[0]
@@ -173,7 +179,10 @@ const AddPersonIntentHandler = {
           if (sessionAttributes.listOfAttendees.length < size) {
             speechText += ` Please say the first name of your next attendee`
           } else {
-            speechText += ` Would you like to find the best available meeting time?`
+            // TODO: Kas commented out
+            sessionAttributes.availableTimes = findFirstTime(sessionAttributes)
+            let firstTime = sessionAttributes.availableTimes[timeSlot].start.value
+            speechText = `Your first available time is ${firstTime}. Schedule meeting or find the next available time?`
           }
         // No employee was found
         } else if (attendee.length < 1) {
@@ -275,7 +284,7 @@ const AvailableTimeIntent = {
     const attributesManager = handlerInput.attributesManager
     const sessionAttributes = attributesManager.getSessionAttributes()
 
-    if (sessionAttributes.listOfAttendees && sessionAttributes.listOfAttendees.length >= sessionAttributes.size.length) {
+    if (sessionAttributes.listOfAttendees.length >= sessionAttributes.size) {
       finishAdding = true
     }
 
@@ -334,7 +343,7 @@ const TimeSlotHandler = {
     let finishAdding = false
     let finishTime = false
 
-    if (sessionAttributes.listOfAttendees && sessionAttributes.listOfAttendees.length >= sessionAttributes.size.length) {
+    if (sessionAttributes.listOfAttendees.length >= sessionAttributes.size) {
       finishAdding = true
     }
     if (sessionAttributes.availableTimes) {
@@ -354,13 +363,12 @@ const TimeSlotHandler = {
     const { availableTimes, timeSlot } = sessionAttributes
     const currentMeetingTime = availableTimes[timeSlot].start.value
     return responseBuilder.speak(`<speak> Your next available time frame is ${currentMeetingTime}.
-    Would you like to set up a meeting then? Or find the next available time?</speak>`)
+    Say yes to set up a meeting  Or say find the next available time?</speak>`)
       .reprompt(`Would you like to set up a meeting at ${currentMeetingTime}.`).getResponse()
   }
 }
 
 // Handler for Meeting Intent
-// TODO: Add samples for subject
 const MeetingIntent = {
   canHandle (handlerInput) {
     let finishAdding = false
@@ -368,7 +376,7 @@ const MeetingIntent = {
     const attributesManager = handlerInput.attributesManager
     const sessionAttributes = attributesManager.getSessionAttributes()
 
-    if (sessionAttributes.listOfAttendees && sessionAttributes.listOfAttendees.length >= sessionAttributes.size.length) {
+    if (sessionAttributes.listOfAttendees.length >= sessionAttributes.size && sessionAttributes.availableTimes) {
       finishAdding = true
     }
 
@@ -499,7 +507,7 @@ const UnhandledIntent = {
     return true
   },
   handle (handlerInput) {
-    const outputSpeech = 'I do not understand that phrase.'
+    const outputSpeech = 'Im sorry, I do not understand that phrase? Could you rephrase that?'
     return handlerInput.responseBuilder
       .speak(outputSpeech)
       .reprompt(outputSpeech)
@@ -513,17 +521,27 @@ function askToLink (handlerInput) {
   return handlerInput.responseBuilder.speak(speechText).getResponse()
 }
 
+function findFirstTime (sessionAttributes) {
+  let { listOfAttendees } = sessionAttributes
+  let { duration } = sessionAttributes
+  const client = Client.init({
+    authProvider: (done) => {
+      done(null, accessToken)
+    }
+  })
+  return findAvailableTimes(client, listOfAttendees, slots)
+}
+
 // Returns a array of all employees with a given first name.
 const findEmployee = (client, givenName) => client.api('me/people').search(givenName).get()
 
 // Returns an array of available times for the meetings
-async function findAvailableTimes (client, attendees, slots) {
+async function findAvailableTimes (client, attendees, duration) {
   const meetingDetail = () => {
-    // TODO: Fix endDate
-    let duration = slots.duration.value
-    let startDate = slots.startDate.value
+    let duration = duration
+    let startDate = moment()
     let endDate = moment(startDate).add(90, 'days')
-    let startTime = slots.startTime.value || '07:00:00'
+    let startTime = '07:00:00'
     let endTime = '19:00:00'
     // Moment time format Year - Month - Day - T - Hour - Minutes - Seconds - Milliseconds
     const timeFormat = 'YYYY-MM-DDTHH:mm:ss.SSS'
@@ -588,11 +606,10 @@ async function findAvailableTimes (client, attendees, slots) {
         timeSlot.end.value = moment(timeSlot.end.dateTime).format(timeFormat)
         meetingTimes.push(timeSlot)
       }
-
+      meetingTimes.sort((a, b) => new Date(a.start.dateTime) - new Date(b.end.dateTime))
       // Sorting the times from soonest to latest
-      return _.sortBy(meetingTimes, function (timeSlot) {
-        return timeSlot.start.value
-      })
+      console.log(`Meeting Times => ${JSON.stringify(meetingTimes)}`)
+      return meetingTimes
     })
 }
 

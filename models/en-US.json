@@ -36,10 +36,7 @@
                     "slots": [
                         {
                             "name": "firstName",
-                            "type": "AMAZON.US_FIRST_NAME",
-                            "samples": [
-                                "{firstName}"
-                            ]
+                            "type": "AMAZON.US_FIRST_NAME"
                         },
                         {
                             "name": "lastName",
@@ -47,6 +44,8 @@
                         }
                     ],
                     "samples": [
+                        "{lastName} {firstName}",
+                        "{lastName}",
                         "{firstName} {lastName}",
                         "{firstName}"
                     ]
@@ -70,18 +69,7 @@
                             ]
                         },
                         {
-                            "name": "endDate",
-                            "type": "AMAZON.DATE",
-                            "samples": [
-                                "{endDate} {endTime}"
-                            ]
-                        },
-                        {
                             "name": "startTime",
-                            "type": "AMAZON.TIME"
-                        },
-                        {
-                            "name": "endTime",
                             "type": "AMAZON.TIME"
                         },
                         {
@@ -99,17 +87,12 @@
                     "slots": [
                         {
                             "name": "subject",
-                            "type": "Subject"
-                        },
-                        {
-                            "name": "context",
-                            "type": "Context"
+                            "type": "AMAZON.SearchQuery"
                         }
                     ],
                     "samples": [
                         "set up a meeting",
-                        "create a meeting",
-                        "{subject}"
+                        "create a meeting"
                     ]
                 },
                 {
@@ -334,6 +317,41 @@
                     "values": [
                         {
                             "name": {
+                                "value": "review"
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "office meeting"
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "phone call"
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "new feature"
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "api talk"
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "twitter account"
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "facebook"
+                            }
+                        },
+                        {
+                            "name": {
                                 "value": "team meeting"
                             }
                         },
@@ -408,28 +426,7 @@
                     "name": "MeetingIntent",
                     "confirmationRequired": false,
                     "prompts": {},
-                    "slots": [
-                        {
-                            "name": "subject",
-                            "type": "Subject",
-                            "confirmationRequired": true,
-                            "elicitationRequired": true,
-                            "prompts": {
-                                "confirmation": "Confirm.Slot.55267364396.88848806924",
-                                "elicitation": "Elicit.Slot.55267364396.88848806924"
-                            }
-                        },
-                        {
-                            "name": "context",
-                            "type": "Context",
-                            "confirmationRequired": true,
-                            "elicitationRequired": true,
-                            "prompts": {
-                                "confirmation": "Confirm.Slot.55267364396.1134587658313",
-                                "elicitation": "Elicit.Slot.55267364396.1134587658313"
-                            }
-                        }
-                    ]
+                    "slots": []
                 },
                 {
                     "name": "AvailableTimeIntent",
@@ -446,23 +443,7 @@
                             }
                         },
                         {
-                            "name": "endDate",
-                            "type": "AMAZON.DATE",
-                            "confirmationRequired": false,
-                            "elicitationRequired": true,
-                            "prompts": {
-                                "elicitation": "Elicit.Slot.694789131186.318609801551"
-                            }
-                        },
-                        {
                             "name": "startTime",
-                            "type": "AMAZON.TIME",
-                            "confirmationRequired": false,
-                            "elicitationRequired": false,
-                            "prompts": {}
-                        },
-                        {
-                            "name": "endTime",
                             "type": "AMAZON.TIME",
                             "confirmationRequired": false,
                             "elicitationRequired": false,
@@ -488,10 +469,8 @@
                             "name": "firstName",
                             "type": "AMAZON.US_FIRST_NAME",
                             "confirmationRequired": false,
-                            "elicitationRequired": true,
-                            "prompts": {
-                                "elicitation": "Elicit.Slot.1121819083473.536551329030"
-                            }
+                            "elicitationRequired": false,
+                            "prompts": {}
                         },
                         {
                             "name": "lastName",

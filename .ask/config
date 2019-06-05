@@ -10,7 +10,7 @@
         },
         "interactionModel": {
           "en-US": {
-            "eTag": "04f8e4d09162a6927b317e9110ac01da"
+            "eTag": "2a5e0875302d1918a5bef7f6a5d8f0a9"
           }
         },
         "lambda": [
@@ -23,7 +23,7 @@
             "codeUri": "lambda/us-east-1_ask-custom-skill-smart-meeting-default",
             "functionName": "ask-custom-skill-smart-meeting-default",
             "handler": "index.handler",
-            "revisionId": "ce39ec72-cc9a-46ec-8c52-39c151fbc803",
+            "revisionId": "3569bcb1-14e3-4aea-a4c1-029ea20aaaa9",
             "runtime": "nodejs8.10"
           }
         ]
