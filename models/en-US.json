@@ -21,6 +21,10 @@
                         {
                             "name": "number",
                             "type": "AMAZON.NUMBER"
+                        },
+                        {
+                            "name": "duration",
+                            "type": "AMAZON.DURATION"
                         }
                     ],
                     "samples": [
@@ -87,7 +91,7 @@
                     "slots": [
                         {
                             "name": "subject",
-                            "type": "AMAZON.SearchQuery"
+                            "type": "Subject"
                         }
                     ],
                     "samples": [
@@ -317,6 +321,26 @@
                     "values": [
                         {
                             "name": {
+                                "value": "important message concerning the quarter"
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "new employee documents"
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "make new copies"
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "find breakfast"
+                            }
+                        },
+                        {
+                            "name": {
                                 "value": "review"
                             }
                         },
@@ -418,6 +442,15 @@
                             "elicitationRequired": true,
                             "prompts": {
                                 "elicitation": "Elicit.Slot.823159811179.1268522009321"
+                            }
+                        },
+                        {
+                            "name": "duration",
+                            "type": "AMAZON.DURATION",
+                            "confirmationRequired": false,
+                            "elicitationRequired": true,
+                            "prompts": {
+                                "elicitation": "Elicit.Slot.888088776046.899359874323"
                             }
                         }
                     ]
@@ -572,6 +605,15 @@
                     {
                         "type": "PlainText",
                         "value": "I , {firstName} . As the attendee's first name. Is that correct?"
+                    }
+                ]
+            },
+            {
+                "id": "Elicit.Slot.888088776046.899359874323",
+                "variations": [
+                    {
+                        "type": "PlainText",
+                        "value": "What is the duration"
                     }
                 ]
             }
