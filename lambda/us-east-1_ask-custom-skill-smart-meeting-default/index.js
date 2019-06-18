@@ -7,7 +7,6 @@ const Client = require('@microsoft/microsoft-graph-client').Client
 const Fuse = require('fuse.js')
 
 const LaunchRequestHandler = {
-  // TODO: Impliment session control.
   canHandle (handlerInput) {
     const request = handlerInput.requestEnvelope.request
     return handlerInput.requestEnvelope.session.new || request.type === 'LaunchRequest'
@@ -19,14 +18,13 @@ const LaunchRequestHandler = {
     attributes.listOfAttendees = []
     attributes.timeSlot = 0
     if (accessToken) {
-      const speechText =
-        "Welcome the the smart meeting finder. Including yourself, how many people are in this meeting? Dev changed";
+      const speechText = 'Welcome the the smart meeting finder. Including yourself, how many people are in this meeting?'
       return responseBuilder
         .speak(speechText)
         .reprompt(speechText)
-        .getResponse();
+        .getResponse()
     } else {
-      return askToLink(handlerInput);
+      return askToLink(handlerInput)
     }
   }
 }
@@ -47,7 +45,7 @@ const SetUpIntentHandler = {
     attributes.size = requestEnvelope.request.intent.slots.number.value - 1
     attributes.duration = requestEnvelope.request.intent.slots.duration.value
     let { accessToken } = requestEnvelope.context.System.user
-    
+
     if (accessToken) {
       console.log(`Session Attributes: ${JSON.stringify(attributes)}`)
       // SSML tags so Alexa can say things like "first", "second"
@@ -127,8 +125,7 @@ const AddPersonIntentHandler = {
           if (listOfAttendees.length < size) {
             speechText += ` Please say the name of your next attendee`
           } else {
-            
-  console.log(`Session Attributes: ${JSON.stringify(attributes)}`)
+            console.log(`Session Attributes: ${JSON.stringify(attributes)}`)
             attributes.availableTimes = findFirstTime(attributes)
             let firstTime = attributes.availableTimes[timeSlot].start.value
             speechText = `Your first available time is ${firstTime}. Schedule meeting or find the next available time?`
@@ -170,7 +167,7 @@ const AddPersonIntentHandler = {
         } else {
           attendee = attendeeFilter
         }
-        
+
         let speechText = ''
         // Add attendee to the list and checks if the user is completed
         if (attendee.length === 1 || fuseFilter) {
@@ -180,8 +177,9 @@ const AddPersonIntentHandler = {
           if (attributes.listOfAttendees.length < size) {
             speechText += ` Please say the first name of your next attendee`
           } else {
-  console.log(`Session Attributes: ${JSON.stringify(attributes)}`)
-            attributes.availableTimes = findFirstTime(attributes)
+            console.log(`Session Attributes: ${JSON.stringify(attributes)}`)
+            let { accessToken } = handlerInput.requestEnvelope.context.System.user
+            attributes.availableTimes = findFirstTime(attributes, accessToken)
             let firstTime = attributes.availableTimes[timeSlot].start.value
             speechText = `Your first available time is ${firstTime}. Schedule meeting or find the next available time?`
           }
@@ -195,7 +193,7 @@ const AddPersonIntentHandler = {
           if (attributes.listOfAttendees.length < size) {
             speechText += ` Please say the first name of your next attendee`
           } else {
-            const times = await findFirstTime(attributes).then((result) => {
+            const times = await findFirstTime(attributes, accessToken).then((result) => {
               console.log(result)
               attributes.availableTimes = result
             })
@@ -535,12 +533,12 @@ function askToLink (handlerInput) {
   return handlerInput.responseBuilder.speak(speechText).getResponse()
 }
 
-async function findFirstTime (attributes) {
+async function findFirstTime (attributes, token) {
   let { listOfAttendees, duration } = attributes
   console.log(`Session Attributes: ${JSON.stringify(attributes)}`)
   const client = Client.init({
     authProvider: (done) => {
-      done(null, accessToken)
+      done(null, token)
     }
   })
   let result = await findAvailableTimes(client, listOfAttendees, duration)
@@ -568,7 +566,7 @@ async function findAvailableTimes (client, attendees, duration) {
       let dateTimeStart = moment(`${currentMoment.format('YYYY-MM-DD')}T${startTime}`).format(timeFormat) + 'Z'
       let dateTimeEnd = moment(`${currentMoment.format('YYYY-MM-DD')}T${endTime}`).format(timeFormat) + 'Z'
       let meetingPeriod = {
-        start: {  
+        start: {
           dateTime: dateTimeStart,
           timeZone: 'Eastern Standard Time'
         },
